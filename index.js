@@ -10,10 +10,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
-    res.send('API\'ya hoş geldiniz'); // Hoş geldiniz mesajı gönder
+    res.send('API\'ya hoş geldiniz'); 
 });
 
-// Bir öğrenci eklemek için rota
+// öğrenci ekle
 app.post('/students', async (req, res) => {
     const { name, email, deptid, counter } = req.body;
     try {
@@ -58,6 +58,59 @@ app.put('/students/:id', async (req, res) => {
         res.status(500).json({ success: false, error: 'Internal server error' });
     }
 });
+
+//Bölüm ekleme
+app.post('/departments', async (req, res) => {
+    const { name, dept_std_id } = req.body;
+    try {
+        const result = await queryDB(
+            'INSERT INTO public."Department" (name, dept_std_id) VALUES ($1, $2) RETURNING *',
+            [name, dept_std_id]
+        );
+        res.status(201).json({ success: true, data: result.rows[0] });
+    } catch (error) {
+        console.error('Bölüm eklenirken hata oluştu:', error);
+        res.status(500).json({ success: false, error: 'Dahili sunucu hatası' });
+    }
+});
+
+//Bölüm silme
+app.delete('/departments/:id', async (req, res) => {
+    const departmentId = req.params.id;
+    try {
+        const result = await queryDB('DELETE FROM public."Department" WHERE id = $1 RETURNING *', [departmentId]);
+        if (result.rows.length === 0) {
+            res.status(404).json({ success: false, error: 'Bölüm bulunamadı' });
+        } else {
+            res.json({ success: true, message: 'Bölüm başarıyla silindi' });
+        }
+    } catch (error) {
+        console.error('Bölüm silinirken hata oluştu:', error);
+        res.status(500).json({ success: false, error: 'Dahili sunucu hatası' });
+    }
+});
+
+//Bölüm güncelleme
+
+app.put('/departments/:id', async (req, res) => {
+    const departmentId = req.params.id;
+    const { name, dept_std_id } = req.body;
+    try {
+        const result = await queryDB(
+            'UPDATE public."Department" SET name = $1, dept_std_id = $2 WHERE id = $3 RETURNING *',
+            [name, dept_std_id, departmentId]
+        );
+        if (result.rows.length === 0) {
+            res.status(404).json({ success: false, error: 'Bölüm bulunamadı' });
+        } else {
+            res.json({ success: true, data: result.rows[0] });
+        }
+    } catch (error) {
+        console.error('Bölüm güncellenirken hata oluştu:', error);
+        res.status(500).json({ success: false, error: 'Dahili sunucu hatası' });
+    }
+});
+
 
 connectDB().then(() => {
     app.listen(port, () => {
