@@ -4,6 +4,7 @@ const { connectDB, disconnectDB, queryDB } = require('./database');
 const nodemailer = require('nodemailer');// e-posta göndermek için kullanılan bir kütüphanedir.
 const app = express();
 const fs = require('fs');
+const moment = require('moment'); // moment paketini ekledik
 
 const port = process.env.PORT || 3000;
 
@@ -17,12 +18,12 @@ app.get('/', (req, res) => {
 
 // Yeni bir öğrenci eklemek için bir POST isteği işleyicisi
 app.post('/students', async (req, res) => {
-    const { name, email, deptid} = req.body;
+    const { name, email, deptid, address, phone, clubs } = req.body;
     try {
         // Öğrenci veritabanına ekleme işlemi
         const result = await queryDB(
-            'INSERT INTO public."Student" (name, email, deptid) VALUES ($1, $2, $3) RETURNING *',
-            [name, email, deptid]
+            'INSERT INTO public."Student" (name, email, deptid, address, phone, clubs, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+            [name, email, deptid, address, phone, clubs, moment().format('YYYY-MM-DD HH:mm:ss'), moment().format('YYYY-MM-DD HH:mm:ss')]
         );
         // Öğrenci sayacını artırma işlemi
         await queryDB('UPDATE "student_counter" SET counter = counter + 1');
@@ -59,10 +60,14 @@ app.delete('/students/:id', async (req, res) => {
 // Bir öğrenciyi güncellemek için bir PUT isteği işleyicisi
 app.put('/students/:id', async (req, res) => {
     const studentId = req.params.id;
-    const { name, email, deptid } = req.body;
+    const updatedAt = new Date(); // Güncelleme zamanını al
+    const { name, email, deptid, address, phone, clubs } = req.body;
     try {
         // Öğrenciyi güncelleme işlemi
-        const result = await queryDB('UPDATE public."Student" SET name = $1, email = $2, deptid = $3 WHERE id = $4 RETURNING *', [name, email, deptid, studentId]);
+        const result = await queryDB(
+            'UPDATE public."Student" SET name = $1, email = $2, deptid = $3, address = $4, phone = $5, clubs = $6, updated_at = $7 WHERE id = $8 RETURNING *',
+            [name, email, deptid, address, phone, clubs, updatedAt, studentId]
+        );
 
         // Öğrenci sayacını azaltma işlemi
         await queryDB('UPDATE "student_counter" SET counter = counter - 1');
@@ -83,12 +88,12 @@ app.put('/students/:id', async (req, res) => {
 
 // Yeni bir bölüm eklemek için bir POST isteği işleyicisi
 app.post('/departments', async (req, res) => {
-    const { name, dept_std_id } = req.body;
+    const { name, dept_std_id, head_of_department, head_email, quota} = req.body;
     try {
         // Bölümü veritabanına ekleme işlemi
         const result = await queryDB(
-            'INSERT INTO public."Department" (name, dept_std_id) VALUES ($1, $2) RETURNING *',
-            [name, dept_std_id]
+            'INSERT INTO public."Department" (name, dept_std_id, head_of_department, head_email, quota, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+            [name, dept_std_id, head_of_department, head_email, quota, moment().format('YYYY-MM-DD HH:mm:ss'), moment().format('YYYY-MM-DD HH:mm:ss')]
         );
         // Başarılı yanıt
         res.status(201).json({ success: true, data: result.rows[0] });
@@ -122,12 +127,13 @@ app.delete('/departments/:id', async (req, res) => {
 // Bir bölümü güncellemek için bir PUT isteği işleyicisi
 app.put('/departments/:id', async (req, res) => {
     const departmentId = req.params.id;
-    const { name, dept_std_id } = req.body;
+    const updatedAt = new Date(); // Güncelleme zamanını al
+    const { name, dept_std_id, head_of_department, head_email, quota } = req.body;
     try {
         // Bölümü güncelleme işlemi
         const result = await queryDB(
-            'UPDATE public."Department" SET name = $1, dept_std_id = $2 WHERE id = $3 RETURNING *',
-            [name, dept_std_id, departmentId]
+            'UPDATE public."Department" SET name = $1, dept_std_id = $2, head_of_department = $3, head_email = $4, quota = $5, updated_at = $6 WHERE id = $7 RETURNING *',
+            [name, dept_std_id, head_of_department, head_email, quota, updatedAt, departmentId]
         );
         if (result.rows.length === 0) {
             // Güncellenen bölüm bulunamadı durumunda hata yanıtı

@@ -43,8 +43,9 @@ async function queryDB(sqlQuery, values) {
 
 async function addStudent(name, email, deptid) {
     try {
-        const insertQuery = 'INSERT INTO public."Student" (name, email, deptid) VALUES ($1, $2, $3)';
-        await queryDB(insertQuery, [name, email, deptid]);
+        const insertQuery = 'INSERT INTO public."Student" (name, email, deptid, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)';
+        const currentDate = new Date(); // Şu anki tarih ve saat
+        await queryDB(insertQuery, [name, email, deptid, currentDate, currentDate]);
 
         // Update the counter value
         await queryDB('UPDATE "student_counter" SET counter = counter + 1');
